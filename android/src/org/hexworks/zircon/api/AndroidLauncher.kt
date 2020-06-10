@@ -1,33 +1,31 @@
-package com.mygdx.game
+package org.hexworks.zircon.api
 
 import android.os.Bundle
 import com.badlogic.gdx.backends.android.AndroidApplication
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration
-import com.mygdx.game.views.StartView
-import org.hexworks.zircon.api.CP437TilesetResources
-import org.hexworks.zircon.api.AndroidApplications
 import org.hexworks.zircon.api.application.AppConfig
+import org.hexworks.zircon.internal.application.AndroidGame
 
-class AndroidLauncher: AndroidApplication() {
-    private val tileset = CP437TilesetResources.hack64x64()
+open class AndroidLauncher: AndroidApplication() {
+    open var tileset = CP437TilesetResources.hack64x64()
+    open lateinit var config: AndroidApplicationConfiguration
+    open lateinit var game: AndroidGame
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val config = AndroidApplicationConfiguration()
+        config = AndroidApplicationConfiguration()
 
-        val game = AndroidApplications.startAndroidGame(
+        game = AndroidApplications.startAndroidGame(
                 AppConfig.newBuilder()
                         .withDefaultTileset(tileset)
                         .withSize(28, 16)
                         .withDebugMode(true)
                         .build(),
                 context)
+    }
 
+    fun initializeGame() {
         initialize(game, config)
-
-        val startView = StartView(game.libgdxApplication.tileGrid)
-        startView.dock()
-
     }
 }
