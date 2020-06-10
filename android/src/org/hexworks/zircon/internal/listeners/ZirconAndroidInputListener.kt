@@ -17,8 +17,7 @@ import org.hexworks.zircon.internal.uievent.injectStringAsKeyboardEvents
 
 class ZirconInputListener(private val fontWidth: Int,
                           private val fontHeight: Int,
-                          private val tileGrid: InternalTileGrid,
-                          private val androidContext: Context) : InputProcessor {
+                          private val tileGrid: InternalTileGrid) : InputProcessor {
 
     private var clicking = false
     private var lastMouseLocation = Position.unknown()
@@ -39,11 +38,7 @@ class ZirconInputListener(private val fontWidth: Int,
             val event = createKeyboardEvent(
                     keyCode = keyCode,
                     type = KEY_TYPED)
-            if (RuntimeConfig.config.isClipboardAvailable && event.isPasteEvent()) {
-                pasteClipboardContent()
-            } else {
-                tileGrid.process(event, UIEventPhase.TARGET)
-            }.eventProcessed
+            tileGrid.process(event, UIEventPhase.TARGET).eventProcessed
         }
     }
 
@@ -59,11 +54,7 @@ class ZirconInputListener(private val fontWidth: Int,
             val event = createKeyboardEvent(
                     keyCode = keyCode,
                     type = KEY_PRESSED)
-            return if (RuntimeConfig.config.isClipboardAvailable && event.isPasteEvent()) {
-                pasteClipboardContent()
-            } else {
-                tileGrid.process(event, UIEventPhase.TARGET)
-            }.eventProcessed
+            return tileGrid.process(event, UIEventPhase.TARGET).eventProcessed
         }
         return true
     }
@@ -82,16 +73,6 @@ class ZirconInputListener(private val fontWidth: Int,
                     type = KEY_RELEASED), UIEventPhase.TARGET).eventProcessed
         }
         return false
-    }
-
-    private fun pasteClipboardContent(): UIEventResponse {
-        val clipboard = androidContext.getSystemService(Application.CLIPBOARD_SERVICE) as ClipboardManager
-        val item = clipboard.primaryClip?.getItemAt(0)
-        val pasteData = item?.text
-
-        return pasteData?.let {
-            injectStringAsKeyboardEvents(it.toString(), tileGrid)
-        } ?: Pass
     }
 
     private fun createKeyboardEvent(keyCode: KeyCode, type: KeyboardEventType): KeyboardEvent {

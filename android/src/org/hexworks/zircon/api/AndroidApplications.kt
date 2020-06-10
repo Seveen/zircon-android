@@ -1,6 +1,5 @@
 package org.hexworks.zircon.api
 
-import android.content.Context
 import org.hexworks.zircon.api.application.AppConfig
 import org.hexworks.zircon.api.application.Application
 import org.hexworks.zircon.api.grid.TileGrid
@@ -14,9 +13,8 @@ object AndroidApplications {
      */
     @JvmStatic
     @JvmOverloads
-    fun buildApplication(appConfig: AppConfig = AppConfig.defaultConfiguration(),
-                         androidContext: Context): AndroidApplication {
-        return makeLibgdxGame(appConfig, androidContext).libgdxApplication
+    fun buildApplication(appConfig: AppConfig = AppConfig.defaultConfiguration()): AndroidApplication {
+        return makeLibgdxGame(appConfig).libgdxApplication
     }
 
     /**
@@ -24,9 +22,8 @@ object AndroidApplications {
      */
     @JvmStatic
     @JvmOverloads
-    fun startApplication(appConfig: AppConfig = AppConfig.defaultConfiguration(),
-                         androidContext: Context): AndroidApplication {
-        with(makeLibgdxGame(appConfig, androidContext)) {
+    fun startApplication(appConfig: AppConfig = AppConfig.defaultConfiguration()): AndroidApplication {
+        with(makeLibgdxGame(appConfig)) {
             start()
             return this.libgdxApplication
         }
@@ -37,9 +34,8 @@ object AndroidApplications {
      */
     @JvmStatic
     @JvmOverloads
-    fun startAndroidGame(appConfig: AppConfig = AppConfig.defaultConfiguration(),
-                                        androidContext: Context): AndroidGame {
-        with(makeLibgdxGame(appConfig, androidContext)) {
+    fun startAndroidGame(appConfig: AppConfig = AppConfig.defaultConfiguration()): AndroidGame {
+        with(makeLibgdxGame(appConfig)) {
             start()
             return this
         }
@@ -71,11 +67,10 @@ object AndroidApplications {
      */
     @JvmStatic
     @JvmOverloads
-    fun startTileGrid(appConfig: AppConfig = AppConfig.defaultConfiguration(),
-                      androidContext: Context): TileGrid {
+    fun startTileGrid(appConfig: AppConfig = AppConfig.defaultConfiguration()): TileGrid {
         val maxTries = 10
         var currentTryCount = 0
-        val game = makeLibgdxGame(appConfig, androidContext)
+        val game = makeLibgdxGame(appConfig)
         game.start()
         var notInitialized = true
         while (notInitialized) {
@@ -102,8 +97,7 @@ object AndroidApplications {
      * title, width and height, and foregroundFPS respectively.
      */
     @JvmStatic
-    private fun makeLibgdxGame(appConfig: AppConfig = AppConfig.defaultConfiguration(),
-                               androidContext: Context): AndroidGame {
-        return AndroidGame.build(appConfig, androidContext)
+    private fun makeLibgdxGame(appConfig: AppConfig = AppConfig.defaultConfiguration()): AndroidGame {
+        return AndroidGame.build(appConfig)
     }
 }

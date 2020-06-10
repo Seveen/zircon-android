@@ -10,7 +10,6 @@ import org.hexworks.zircon.api.application.AppConfig
 import org.hexworks.zircon.internal.listeners.ZirconInputListener
 
 class AndroidGame(private val appConfig: AppConfig,
-                  private val androidContext: Context,
                   private var started: Boolean = false) : Game() {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -38,8 +37,7 @@ class AndroidGame(private val appConfig: AppConfig,
         Gdx.input.inputProcessor = ZirconInputListener(
                 fontWidth = tileset.width,
                 fontHeight = tileset.height,
-                tileGrid = tileGrid,
-                androidContext = androidContext)
+                tileGrid = tileGrid)
     }
 
     override fun render() {
@@ -55,9 +53,8 @@ class AndroidGame(private val appConfig: AppConfig,
     }
 
     companion object {
-        fun build(appConfig: AppConfig = AppConfig.defaultConfiguration(),
-                  androidContext: Context): AndroidGame {
-            return AndroidGame(appConfig, androidContext)
+        fun build(appConfig: AppConfig = AppConfig.defaultConfiguration()): AndroidGame {
+            return AndroidGame(appConfig)
         }
     }
 

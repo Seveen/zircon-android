@@ -17,7 +17,7 @@ open class AndroidLauncher: AndroidApplication() {
     lateinit var grid: InternalTileGrid
 
     fun initializeGame() {
-        game = AndroidApplications.startAndroidGame(config, context)
+        game = AndroidApplications.startAndroidGame(config)
         grid = game.libgdxApplication.tileGrid
         initialize(game, androidConfig)
     }
