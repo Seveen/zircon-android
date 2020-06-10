@@ -10,25 +10,29 @@ import org.hexworks.zircon.api.view.base.BaseView
 
 class StartView(grid: TileGrid): BaseView(grid, ColorThemes.adriftInDreams()) {
 
-    val panel = Components.panel()
-            .withSize(40, 20)
-            .withDecorations(box(title = "Hello Android"), shadow())
+    private val panel = Components.panel()
+            .withSize(20, 10)
+            .withDecorations()
             .withAlignmentWithin(grid, ComponentAlignment.CENTER)
             .build()
 
-    val button = Components.button()
-            .withText("Hi there...")
+    private val label = Components.label()
+            .withText("Zircon Android")
             .withAlignmentWithin(panel, ComponentAlignment.CENTER)
             .build()
 
-    val button2 = Components.button()
-            .withText("Hi there...")
-            .withAlignmentWithin(panel, ComponentAlignment.BOTTOM_CENTER)
-            .build()
+    private val button = Components.button()
+            .withText("Start")
+            .withAlignmentAround(label, ComponentAlignment.BOTTOM_CENTER)
+            .build().apply {
+                onActivated {
+                    GameView(grid).dock()
+                }
+            }
 
     init {
+        panel.addComponent(label)
         panel.addComponent(button)
         screen.addComponent(panel)
     }
-
 }

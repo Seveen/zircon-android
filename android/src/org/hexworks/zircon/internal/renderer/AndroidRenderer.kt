@@ -1,5 +1,6 @@
 package org.hexworks.zircon.internal.renderer
 
+import android.os.Debug
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.OrthographicCamera
@@ -8,6 +9,8 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.badlogic.gdx.utils.Pool
+import com.badlogic.gdx.utils.Pools
 import org.hexworks.cobalt.databinding.api.extension.toProperty
 import org.hexworks.cobalt.datatypes.Maybe
 import org.hexworks.zircon.api.Maybes
@@ -25,6 +28,11 @@ import org.hexworks.zircon.internal.grid.InternalTileGrid
 import org.hexworks.zircon.internal.tileset.AndroidTilesetLoader
 
 
+//TODO: remove sprite creation from the render loop
+//TODO: object pooling?
+//TODO: remove reflection-using methods. (e.g. Position.plus())
+//TODO: (last resort) tilegrid datastructure not fast enough, iteration is slow
+
 @Suppress("UNCHECKED_CAST", "UNUSED_PARAMETER")
 class AndroidRenderer(private val grid: InternalTileGrid,
                       private val debug: Boolean = false) : Renderer {
@@ -32,7 +40,8 @@ class AndroidRenderer(private val grid: InternalTileGrid,
     override val isClosed = false.toProperty()
 
     private val config = RuntimeConfig.config
-    private var maybeBatch: Maybe<SpriteBatch> = Maybes.empty()
+    private lateinit var batch: SpriteBatch
+    private var backSprite = Sprite()
     private lateinit var cursorRenderer: ShapeRenderer
     private val tilesetLoader = AndroidTilesetLoader()
     private var blinkOn = true
@@ -43,11 +52,12 @@ class AndroidRenderer(private val grid: InternalTileGrid,
     private var backgroundHeight: Int = 0
 
     override fun create() {
-        maybeBatch = Maybes.of(SpriteBatch().apply {
+        batch = SpriteBatch().apply {
             val camera = OrthographicCamera()
             camera.setToOrtho(true)
             projectionMatrix = camera.combined
-        })
+        }
+
         cursorRenderer = ShapeRenderer()
         val whitePixmap = Pixmap(grid.widthInPixels, grid.heightInPixels, Pixmap.Format.RGBA8888)
         whitePixmap.setColor(Color.WHITE)
@@ -70,28 +80,27 @@ class AndroidRenderer(private val grid: InternalTileGrid,
 
     override fun close() {
         isClosed.value = true
-        maybeBatch.map(SpriteBatch::dispose)
+        batch.dispose()
     }
 
     private fun doRender(delta: Float) {
         handleBlink(delta)
 
-        maybeBatch.map { batch ->
-            batch.begin()
-            grid.layerStates.forEach { state ->
-                renderTiles(
-                        batch = batch,
-                        state = state,
-                        tileset = tilesetLoader.loadTilesetFrom(grid.tileset),
-                        offset = state.position.toPixelPosition(grid.tileset)
-                )
-            }
-            batch.end()
-            cursorRenderer.projectionMatrix = batch.projectionMatrix
-            if (shouldDrawCursor()) {
-                grid.getTileAt(grid.cursorPosition).map {
-                    drawCursor(cursorRenderer, it, grid.cursorPosition)
-                }
+        batch.begin()
+
+        grid.fetchLayerStates().forEach { state ->
+            renderTiles(
+                    batch = batch,
+                    state = state,
+                    tileset = tilesetLoader.loadTilesetFrom(grid.tileset),
+                    offset = state.position.toPixelPosition(grid.tileset)
+            )
+        }
+        batch.end()
+        cursorRenderer.projectionMatrix = batch.projectionMatrix
+        if (shouldDrawCursor()) {
+            grid.getTileAt(grid.cursorPosition).map {
+                drawCursor(cursorRenderer, it, grid.cursorPosition)
             }
         }
     }
@@ -101,22 +110,11 @@ class AndroidRenderer(private val grid: InternalTileGrid,
                             tileset: Tileset<SpriteBatch>,
                             offset: PixelPosition = PixelPosition(0, 0)) {
 
-        /*
-         * I can already see you reaching for that ctrl-x ctrl-v to move that single
-         * drawBack() method call into the next loop. Why would two identical loops
-         * be required for two methods? Just but both into one loop, right? Wrong.
-         * This runs a beautiful 60fps in the test. Now try moving both into the same
-         * loop. I dare you. Have fun with the 14 fps, freak. I can't explain it, I
-         * can only hope to save those that think they can optimize this. Leave it,
-         * for your own sanity
-         *
-         * I think the problem resolved itself, magically. If this turns out to be not
-         * the case uncomment the commented block of code and delete the first
-         * actualTileset.drawTile()
-         */
-
+//        Debug.startMethodTracing("test.trace")
         state.tiles.forEach { (pos, tile) ->
-            val actualPos = pos + state.position
+            val actualX = pos.x + state.position.x
+            val actualY = pos.y + state.position.y
+
             if (tile !== Tile.empty()) {
                 val actualTile =
                         if (tile.isBlinking /*&& blinkOn*/) {
@@ -132,12 +130,36 @@ class AndroidRenderer(private val grid: InternalTileGrid,
                             tileset
                         }
 
-                val pixelPos = Position.create(actualPos.x * actualTileset.width, actualPos.y * actualTileset.height)
                 drawBack(
                         tile = actualTile,
                         surface = batch,
-                        position = pixelPos
+                        x = actualX * actualTileset.width.toFloat(),
+                        y = actualY * actualTileset.height.toFloat()
                 )
+            }
+        }
+//        Debug.stopMethodTracing()
+
+//        Debug.startMethodTracing("test2.trace")
+        state.tiles.forEach { (pos, tile) ->
+            val actualX = pos.x + state.position.x
+            val actualY = pos.y + state.position.y
+
+            if (tile !== Tile.empty()) {
+                val actualTile =
+                        if (tile.isBlinking /*&& blinkOn*/) {
+                            tile.withBackgroundColor(tile.foregroundColor)
+                                    .withForegroundColor(tile.backgroundColor)
+                        } else {
+                            tile
+                        }
+                val actualTileset: Tileset<SpriteBatch> =
+                        if (actualTile is TilesetOverride) {
+                            tilesetLoader.loadTilesetFrom(actualTile.tileset)
+                        } else {
+                            tileset
+                        }
+                val pixelPos = Position.create(actualX * actualTileset.width, actualY * actualTileset.height)
                 actualTileset.drawTile(
                         tile = actualTile,
                         surface = batch,
@@ -145,38 +167,12 @@ class AndroidRenderer(private val grid: InternalTileGrid,
                 )
             }
         }
-
-//        state.tiles.forEach { (pos, tile) ->
-//            val actualPos = pos + state.position
-//            if (tile !== Tile.empty()) {
-//                val actualTile =
-//                        if (tile.isBlinking /*&& blinkOn*/) {
-//                            tile.withBackgroundColor(tile.foregroundColor)
-//                                    .withForegroundColor(tile.backgroundColor)
-//                        } else {
-//                            tile
-//                        }
-//                val actualTileset: Tileset<SpriteBatch> =
-//                        if (actualTile is TilesetOverride) {
-//                            tilesetLoader.loadTilesetFrom(actualTile.tileset)
-//                        } else {
-//                            tileset
-//                        }
-//                val pixelPos = Position.create(actualPos.x * actualTileset.width, actualPos.y * actualTileset.height)
-//                actualTileset.drawTile(
-//                        tile = actualTile,
-//                        surface = batch,
-//                        position = pixelPos
-//                )
-//            }
-//        }
+//        Debug.stopMethodTracing()
 
     }
 
-    private fun drawBack(tile: Tile, surface: SpriteBatch, position: Position) {
-        val x = position.x.toFloat()
-        val y = position.y.toFloat()
-        val backSprite = Sprite(backgroundTexture)
+    private fun  drawBack(tile: Tile, surface: SpriteBatch, x: Float, y: Float) {
+        backSprite.texture = backgroundTexture
         backSprite.setSize(backgroundWidth.toFloat(), backgroundHeight.toFloat())
         backSprite.setOrigin(0f, 0f)
         backSprite.setOriginBasedPosition(x, y)

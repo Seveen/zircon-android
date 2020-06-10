@@ -37,7 +37,7 @@ object AndroidApplications {
      */
     @JvmStatic
     @JvmOverloads
-    fun startAndroidGameWithApplication(appConfig: AppConfig = AppConfig.defaultConfiguration(),
+    fun startAndroidGame(appConfig: AppConfig = AppConfig.defaultConfiguration(),
                                         androidContext: Context): AndroidGame {
         with(makeLibgdxGame(appConfig, androidContext)) {
             start()

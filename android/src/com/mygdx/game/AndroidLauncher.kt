@@ -9,19 +9,20 @@ import org.hexworks.zircon.api.AndroidApplications
 import org.hexworks.zircon.api.application.AppConfig
 
 class AndroidLauncher: AndroidApplication() {
-    private val tileset = CP437TilesetResources.rexPaint20x20()
+    private val tileset = CP437TilesetResources.hack64x64()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val config = AndroidApplicationConfiguration()
-        config.useGL30 = true
 
-        val game = AndroidApplications.startAndroidGameWithApplication(AppConfig.newBuilder()
-                .withDefaultTileset(tileset)
-                .withSize(60, 30)
-                .withDebugMode(true)
-                .build(), context)
+        val game = AndroidApplications.startAndroidGame(
+                AppConfig.newBuilder()
+                        .withDefaultTileset(tileset)
+                        .withSize(28, 16)
+                        .withDebugMode(true)
+                        .build(),
+                context)
 
         initialize(game, config)
 

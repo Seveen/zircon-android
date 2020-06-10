@@ -6,11 +6,14 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.utils.Pool
+import com.badlogic.gdx.utils.Pools
 import com.github.benmanes.caffeine.cache.Caffeine
 import org.hexworks.cobalt.core.api.UUID
 import org.hexworks.zircon.api.data.CharacterTile
 import org.hexworks.zircon.api.data.Position
 import org.hexworks.zircon.api.data.Tile
+import org.hexworks.zircon.api.modifier.Modifier
 import org.hexworks.zircon.api.modifier.TileTransformModifier
 import org.hexworks.zircon.api.tileset.TileTexture
 import org.hexworks.zircon.api.tileset.Tileset
@@ -42,7 +45,7 @@ class AndroidCP437Tileset(override val width: Int,
 //            .expireAfterAccess(1, TimeUnit.MINUTES)
 //            .build<String, TileTexture<TextureRegion>>()
 
-    private val cache = LruCache<String, TileTexture<TextureRegion>>(100)
+//    private val cache = LruCache<String, TileTexture<TextureRegion>>(100)
 
     private val texture: Texture by lazy {
         if (!Assets.MANAGER.isLoaded(path)) {
@@ -56,50 +59,56 @@ class AndroidCP437Tileset(override val width: Int,
         Assets.MANAGER.get(Assets.getCP437TextureDescriptor(path))
     }
 
+    private val sprite = Sprite()
+    private val textureRegion = TextureRegion()
+
     override fun drawTile(tile: Tile, surface: SpriteBatch, position: Position) {
         val x = position.x.toFloat()
         val y = position.y.toFloat()
-        val tileSprite = Sprite(fetchTextureForTile(tile).texture)
-        tileSprite.setOrigin(0f, 0f)
-        tileSprite.setOriginBasedPosition(x, y)
-        tileSprite.flip(false, true)
-        tileSprite.color = Color(
+        val region = fetchTextureForTile(tile).texture
+        sprite.setRegion(region)
+        sprite.setSize(region.regionWidth.toFloat(), region.regionHeight.toFloat())
+        sprite.setOrigin(0f, 0f)
+        sprite.setOriginBasedPosition(x, y)
+        sprite.flip(false, true)
+        sprite.color = Color(
                 tile.foregroundColor.red.toFloat() / 255,
                 tile.foregroundColor.green.toFloat() / 255,
                 tile.foregroundColor.blue.toFloat() / 255,
                 tile.foregroundColor.alpha.toFloat() / 255
         )
-        tileSprite.draw(surface)
+        sprite.draw(surface)
     }
 
-    private fun fetchTextureForTile(tile: Tile): TileTexture<TextureRegion> {
-        var fixedTile = tile as? CharacterTile ?: throw IllegalArgumentException("Wrong tile type")
-        fixedTile.modifiers.filterIsInstance<TileTransformModifier<CharacterTile>>().forEach { modifier ->
-            if (modifier.canTransform(fixedTile)) {
-                fixedTile = modifier.transform(fixedTile)
-            }
-        }
-        val key = fixedTile.cacheKey
-        val meta = CP437_METADATA[fixedTile.character]!!
-        val tr = TextureRegion(texture, meta.x * width, meta.y * height, width, height)
-        val maybeRegion = cache.get(key)
-//        val maybeRegion = cache.getIfPresent(key)
-        return if (maybeRegion != null) {
-            maybeRegion
-        } else {
-            var image: TileTexture<TextureRegion> = DefaultTileTexture(
-                    width = width,
-                    height = height,
-                    texture = tr)
-            TILE_INITIALIZERS.forEach {
-                image = it.transform(image, fixedTile)
-            }
-            /*fixedTile.modifiers.filterIsInstance<TextureTransformModifier>().forEach {
-                image = TEXTURE_TRANSFORMER_LOOKUP[it::class]?.transform(image, fixedTile) ?: image
-            }*/
-            cache.put(key, image)
-            image
-        }
+//    private fun fetchTextureForTile(tile: Tile): TileTexture<TextureRegion> {
+//        var fixedTile = tile as? CharacterTile ?: throw IllegalArgumentException("Wrong tile type")
+//        fixedTile.modifiers.filterIsInstance<TileTransformModifier<CharacterTile>>().forEach { modifier ->
+//            if (modifier.canTransform(fixedTile)) {
+//                fixedTile = modifier.transform(fixedTile)
+//            }
+//        }
+//
+////        val key = fixedTile.cacheKey
+//        val meta = CP437_METADATA[fixedTile.character]!!
+//        val tr = TextureRegion(texture, meta.x * width, meta.y * height, width, height)
+////        val maybeRegion = cache.get(key)
+//////        val maybeRegion = cache.getIfPresent(key)
+////        return if (maybeRegion != null) {
+////            maybeRegion
+////        } else {
+////            var image: TileTexture<TextureRegion> = DefaultTileTexture(
+////                    width = width,
+////                    height = height,
+////                    texture = tr)
+////            TILE_INITIALIZERS.forEach {
+////                image = it.transform(image, fixedTile)
+////            }
+////            /*fixedTile.modifiers.filterIsInstance<TextureTransformModifier>().forEach {
+////                image = TEXTURE_TRANSFORMER_LOOKUP[it::class]?.transform(image, fixedTile) ?: image
+////            }*/
+////            cache.put(key, image)
+////            image
+////        }
 //        var image: TileTexture<TextureRegion> = DefaultTileTexture(
 //                width = width,
 //                height = height,
@@ -108,6 +117,32 @@ class AndroidCP437Tileset(override val width: Int,
 //            image = it.transform(image, fixedTile)
 //        }
 //        return image
+//
+//    }
+
+    private fun fetchTextureForTile(tile: Tile): TileTexture<TextureRegion> {
+        var fixedTile = tile as? CharacterTile ?: throw IllegalArgumentException("Wrong tile type")
+
+        fixedTile.modifiers.forEach { modifier ->
+            modifier.ifIsInstanceOf<TileTransformModifier<CharacterTile>> {
+                if (it.canTransform(fixedTile)) {
+                    fixedTile = it.transform(fixedTile)
+                }
+            }
+        }
+
+        val meta = CP437_METADATA[fixedTile.character]!!
+        textureRegion.texture = texture
+        textureRegion.setRegion(meta.x * width, meta.y * height, width, height)
+
+        var image: TileTexture<TextureRegion> = DefaultTileTexture(
+                width = width,
+                height = height,
+                texture = textureRegion)
+//        TILE_INITIALIZERS.forEach {
+//            image = it.transform(image, fixedTile)
+//        }
+        return image
 
     }
 
@@ -130,4 +165,10 @@ class AndroidCP437Tileset(override val width: Int,
 
     class TileTextureMetadata(val x: Int,
                               val y: Int)
+}
+
+inline fun <reified T> Modifier.ifIsInstanceOf(doNext: (modifier: T) -> Unit) {
+    if (this is T) {
+        doNext(this as T)
+    }
 }
