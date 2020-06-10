@@ -22,10 +22,6 @@ class AndroidGame(private val appConfig: AppConfig,
     val libgdxApplication = AndroidApplication(appConfig)
 
     fun start() {
-        //TODO this should be refactored to be in an AndroidApplication(GDX) I guess
-//        if(!started) {
-//            LwjglApplication(this, libgdxConfig)
-//        }
         started = true
     }
 

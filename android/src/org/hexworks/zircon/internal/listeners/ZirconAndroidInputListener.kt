@@ -15,7 +15,6 @@ import org.hexworks.zircon.internal.config.RuntimeConfig
 import org.hexworks.zircon.internal.grid.InternalTileGrid
 import org.hexworks.zircon.internal.uievent.injectStringAsKeyboardEvents
 
-//TODO: touch input???
 class ZirconInputListener(private val fontWidth: Int,
                           private val fontHeight: Int,
                           private val tileGrid: InternalTileGrid,

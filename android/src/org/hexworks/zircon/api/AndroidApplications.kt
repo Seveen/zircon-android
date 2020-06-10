@@ -104,13 +104,6 @@ object AndroidApplications {
     @JvmStatic
     private fun makeLibgdxGame(appConfig: AppConfig = AppConfig.defaultConfiguration(),
                                androidContext: Context): AndroidGame {
-//        libgdxConfig.title = appConfig.title
-//        libgdxConfig.width = appConfig.size.width * appConfig.defaultTileset.width
-//        libgdxConfig.height = appConfig.size.height * appConfig.defaultTileset.height
-//        libgdxConfig.foregroundFPS = appConfig.fpsLimit
-//        libgdxConfig.useGL30 = false
-        //TODO: android Config here
-
         return AndroidGame.build(appConfig, androidContext)
     }
 }

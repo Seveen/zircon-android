@@ -35,18 +35,6 @@ class AndroidCP437Tileset(override val width: Int,
     override val id: UUID = UUID.randomUUID()
     override val targetType = SpriteBatch::class
 
-    private val lookup = CP437TileMetadataLoader(
-            width = width,
-            height = height)
-
-//    private val cache = Caffeine.newBuilder()
-//            .initialCapacity(100)
-//            .maximumSize(5000)
-//            .expireAfterAccess(1, TimeUnit.MINUTES)
-//            .build<String, TileTexture<TextureRegion>>()
-
-//    private val cache = LruCache<String, TileTexture<TextureRegion>>(100)
-
     private val texture: Texture by lazy {
         if (!Assets.MANAGER.isLoaded(path)) {
             Assets.MANAGER.load(Assets.getCP437TextureDescriptor(path))
@@ -80,46 +68,6 @@ class AndroidCP437Tileset(override val width: Int,
         sprite.draw(surface)
     }
 
-//    private fun fetchTextureForTile(tile: Tile): TileTexture<TextureRegion> {
-//        var fixedTile = tile as? CharacterTile ?: throw IllegalArgumentException("Wrong tile type")
-//        fixedTile.modifiers.filterIsInstance<TileTransformModifier<CharacterTile>>().forEach { modifier ->
-//            if (modifier.canTransform(fixedTile)) {
-//                fixedTile = modifier.transform(fixedTile)
-//            }
-//        }
-//
-////        val key = fixedTile.cacheKey
-//        val meta = CP437_METADATA[fixedTile.character]!!
-//        val tr = TextureRegion(texture, meta.x * width, meta.y * height, width, height)
-////        val maybeRegion = cache.get(key)
-//////        val maybeRegion = cache.getIfPresent(key)
-////        return if (maybeRegion != null) {
-////            maybeRegion
-////        } else {
-////            var image: TileTexture<TextureRegion> = DefaultTileTexture(
-////                    width = width,
-////                    height = height,
-////                    texture = tr)
-////            TILE_INITIALIZERS.forEach {
-////                image = it.transform(image, fixedTile)
-////            }
-////            /*fixedTile.modifiers.filterIsInstance<TextureTransformModifier>().forEach {
-////                image = TEXTURE_TRANSFORMER_LOOKUP[it::class]?.transform(image, fixedTile) ?: image
-////            }*/
-////            cache.put(key, image)
-////            image
-////        }
-//        var image: TileTexture<TextureRegion> = DefaultTileTexture(
-//                width = width,
-//                height = height,
-//                texture = tr)
-//        TILE_INITIALIZERS.forEach {
-//            image = it.transform(image, fixedTile)
-//        }
-//        return image
-//
-//    }
-
     private fun fetchTextureForTile(tile: Tile): TileTexture<TextureRegion> {
         var fixedTile = tile as? CharacterTile ?: throw IllegalArgumentException("Wrong tile type")
 
@@ -139,9 +87,9 @@ class AndroidCP437Tileset(override val width: Int,
                 width = width,
                 height = height,
                 texture = textureRegion)
-//        TILE_INITIALIZERS.forEach {
-//            image = it.transform(image, fixedTile)
-//        }
+        TILE_INITIALIZERS.forEach {
+            image = it.transform(image, fixedTile)
+        }
         return image
 
     }
